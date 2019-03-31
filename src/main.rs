@@ -1,8 +1,20 @@
+// Kostya Yatsuk - 2019
+
+// This code will accept a file which contains a numerical code and it will try to decode it, outputing possible results into an output text file.
+// Stretch: feed the output file into a grammar check to determine which of the possible outputs is the more likely.
+// The decoder will accept a .txt file with code-numbers being represented by numbers separated by spaces, and individual words being separated by "/r/n"
+// It will then find a word with the most number of unique code-numbers and attempt to match it to an existing word from a word bank.
+// Next, a hash-table will be built up using the coded letters, and then applied to the other coded words. Then the decoder will loop through all the coded words,
+// trying to fill in their code-numbers. When a word is created this way, the decoder checks if this word exists in the word bank. If not, it scraps this hash table
+// and starts again using a new word which fits the most unique word.
+
 use std::env;
 use std::fs;
 
+
 fn main() {
     
+    // Get the code from the file passed in
     let args: Vec<String> = env::args().collect();
     let filename = &args[1];
     println!("Filename: {}", filename);
@@ -12,22 +24,66 @@ fn main() {
 
     println!("Text:\n{}", contents);
 
-    // At this point contents contains the code
-    // Convert contents into an array of arrays -> [ [1, 2, 3], [4, 5] ]
-    // From here build up a hashmap assigning numbers to letters.
-    // Using that hashmap and that array of arrays, build a string for each word and check if its in the "dictionary"
-    // If not, restart the process picking new letters for the hashmap
-    // If yes, keep going until all the words are checked, then add the resulting sentence and hashmap to the output txt 
+    // { Convert contents of file into a Vec of Vec }
+    let split = contents.split("\r\n"); // Since i'm doing this for myself, i'm assuming a windows-encoded txt file
 
-    // Process:
-    // Decoder will accept a .txt file as a parameter in command line
-    // Text file is of format "1 2 3 4 12 \n 2 8 10 \n" with spaces representing new letters and newlines representing new words
-    // In output it will generate a .txt file as a list of all possible sentences
+    let mut contents_vec: Vec<Vec<i32>> = Vec::new();
 
-    // Separate the encoded text into a hash-map which matches numbers to letters
-    // Essentially the program will plug various hashmaps into the code. It will then loop through every word in the code and check if 
-    // its a word that exists in the additional words.txt file. If all the words pass, save this as a potential sentence into the output text file.
-    
-    // { Stretch }
-    // If everything in this project is done, add a grammar-checker at the end to filter out sentences which are not grammatically or syntactically correct
+    for s in split {
+        let temp_itr = s.split(" ");
+        let mut line: Vec<i32> = Vec::new();
+
+        for val in temp_itr {
+            let int_val: i32 = val.parse::<i32>().unwrap();
+            line.push(int_val);
+        }
+        contents_vec.push(line);
+    }
+
+    println!("{:?}", contents_vec);
+
+    // { Find the word with the most unique code-numbers and create a has using that words code-numbers }
+    let most_var = most_variety(&contents_vec);
+
+    println!("{}", most_var);
+
 }
+
+
+// Finds the word in the given |code_vec| which has the most unique code-numbers
+// Accepts: a vector of vectors containing i32 values: [ [ i32, i32 ], [ i32, i32, i32 ] ]
+// Returns: an i32 value representing the index of the most unique word 
+fn most_variety(code_vec: &[Vec<i32>]) -> i32 {
+    let mut greatest_index: i32 = 0;
+    let mut greatest_variety = 0;
+
+    for x in 0..code_vec.len() {
+        let variety = unique(&code_vec[x]);
+        if variety > greatest_variety {
+            greatest_index = x as i32;
+            greatest_variety = variety;
+        }
+    }
+
+    greatest_index
+}
+
+// Counts the number of unique code-numbers in a given |vec|
+// Accepts: a vector containing i32 values: [ i32, i32, i32 ]
+// Returns: an i32 value representing the number of unique values in the given |vec|
+fn unique(vec: &[i32]) -> i32 {
+    // counts the number of occurrences of a code number in an array
+    let mut count: i32 = 0;
+    let mut unique_nums = Vec::new(); // Create a vector (dynamic array)
+
+    for letter in vec.iter() {
+        if !(unique_nums.contains(letter)) {
+            count = count + 1;
+            unique_nums.push(*letter);
+        };
+    };
+
+    count
+}
+
+mod test;
