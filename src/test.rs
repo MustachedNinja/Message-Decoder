@@ -44,13 +44,39 @@ mod unique {
     }
 }
 
-mod most_variety() {
+mod most_variety {
 
     use crate::most_variety;
 
-    // Test a Vec of emtpy Vec
+    // Test a Vec of emtpy Vec. Expect an index of 0
     #[test]
     fn emtpy_vec() {
+        let test_vec: Vec<Vec<i32>> = vec![vec![], vec![], vec![]];
+        let output: i32 = most_variety(&test_vec);
+        assert_eq!(output, 0);
+    }
 
+    // Test a Vec of Vecs all length 1. Expect an index of 1
+    #[test]
+    fn len_one() {
+        let test_vec = vec![vec![1], vec![2], vec![3]];
+        let output: i32 = most_variety(&test_vec);
+        assert_eq!(output, 0);
+    }
+
+    // Test a Vec of with only one full Vec
+    #[test]
+    fn one_val() {
+        let test_vec = vec![vec![1], vec![], vec![]];
+        let output: i32 = most_variety(&test_vec);
+        assert_eq!(output, 0);
+    }
+    
+    // Test a Vec with 3 different uniqueness values
+    #[test]
+    fn dif_uniqueness() {
+        let test_vec = vec![ vec![1], vec![1, 2], vec![1, 2, 3]];
+        let output: i32 = most_variety(&test_vec);
+        assert_eq!(output, 2);
     }
 }
