@@ -46,7 +46,7 @@ mod unique {
 
 mod most_variety {
 
-    use crate::most_variety;
+    // use crate::most_variety;
 
     // Test a Vec of emtpy Vec. Expect an index of 0
     #[test]
