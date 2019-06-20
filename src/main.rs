@@ -10,9 +10,11 @@
 
 use std::env;
 use std::fs;
+use std::fs::File;
 use std::collections::HashMap;
+use std::io::prelude::*;
 
-fn main() {
+fn main() -> std::io::Result<()> {
 
     // Get the code from the file passed in
     let args: Vec<String> = env::args().collect();
@@ -53,26 +55,39 @@ fn main() {
     }
 
     let mut encode_hash: HashMap<i32, char> = HashMap::new();
+    let mut file = File::create("out.txt")?;
 
-    if decode_remainder(&contents_vec, &mut encode_hash, &all_words) {
-        println!("Decode successful");
-        println!("Decoded message: \"{}\"", apply_hash(&contents_vec, &encode_hash));
-    } else {
-        println!("Decode failed");
+    let possible_words: Vec<String> = match_length(&contents_vec[0], &all_words);
+    for word in possible_words {
+        encode_hash = HashMap::new();
+        if check_match(&word, &contents_vec[0], &mut encode_hash) {
+            // println!("Worked word: {}", word.to_string());
+            // { call decode_remainder on the rest of the code and add the current encoding to the hash table }
+            let mut next_code: Vec<Vec<i32>> = contents_vec.to_vec();
+            next_code.remove(0);
+            if decode_remainder(&next_code, &mut encode_hash, &all_words, &mut file) {
+                file.write_fmt(format_args!("{}", apply_hash(&contents_vec, &encode_hash)))?;
+                file.write(b"\n")?;
+            }
+        }
     }
 
-    
+    // if decode_remainder(&contents_vec, &mut encode_hash, &all_words) {
+    //     println!("Decode successful");
+    //     // write!(file, "{}", apply_hash(&contents_vec, &encode_hash));
+    //     file.write_fmt(format_args!("{}", apply_hash(&contents_vec, &encode_hash)))?;
+        
+    // } else {
+    //     println!("Decode failed");
+    // }
 
-    // decode_remainder has modified the hash
-
-    // { Loop through encoded words }
-    // { Find all words with the same length as the  }
-    // { Loop through all possible words }
-    // { For each word call a method func(curr_code, curr_testword) -> boolean. It will return true if the word matches}
-
+    // println!("Decoded message: \"{}\"", apply_hash(&contents_vec, &encode_hash));
+    Ok(())
 }
 
-
+// Converts the code and hash into a string
+// Accepts: the code as a vector of vectors and the decoding hash as a HashMap
+// Returns: A string representing the decoded message
 fn apply_hash(code: &[Vec<i32>], encode_hash: &HashMap<i32, char>) -> String {
     let mut return_str: String = String::new();
 
@@ -89,9 +104,11 @@ fn apply_hash(code: &[Vec<i32>], encode_hash: &HashMap<i32, char>) -> String {
     return_str
 }
 
-fn decode_remainder(code: &[Vec<i32>], encode_hash: &mut HashMap<i32, char>, all_words: &Vec<String>) -> bool {
+fn decode_remainder(code: &[Vec<i32>], encode_hash: &mut HashMap<i32, char>, all_words: &Vec<String>, file: &mut File) -> bool {
 
     if code.len() == 0 {
+        file.write_fmt(format_args!("{}", apply_hash(code, encode_hash)));
+        // file.write(b"\n");
         return true;
     }
 
@@ -102,7 +119,7 @@ fn decode_remainder(code: &[Vec<i32>], encode_hash: &mut HashMap<i32, char>, all
             // { call decode_remainder on the rest of the code and add the current encoding to the hash table }
             let mut next_code: Vec<Vec<i32>> = code.to_vec();
             next_code.remove(0);
-            return decode_remainder(&next_code, encode_hash, all_words);
+            return decode_remainder(&next_code, encode_hash, all_words, file);
         }
     }
     false
@@ -136,10 +153,7 @@ fn check_match(word: &String, code_word: &[i32], encode_hash: &mut HashMap<i32, 
         if encode_hash.contains_key(&curr_code) {
             let encode_let = *encode_hash.get(&curr_code).unwrap();
             if encode_let != curr_let {
-                for key in change {
-                    // let key_val: char = key.parse::<char>().unwrap();
-                    encode_hash.remove(&key);
-                }
+                clean_hash(&change, encode_hash);
                 return false;
             }
         } else {
@@ -150,40 +164,10 @@ fn check_match(word: &String, code_word: &[i32], encode_hash: &mut HashMap<i32, 
     true
 }
 
-// Finds the word in the given |code_vec| which has the most unique code-numbers
-// Accepts: a vector of vectors containing i32 values: [ [ i32, i32 ], [ i32, i32, i32 ] ]
-// Returns: an i32 value representing the index of the most unique word 
-// fn most_variety(code_vec: &[Vec<i32>]) -> i32 {
-//     let mut greatest_index: i32 = 0;
-//     let mut greatest_variety = 0;
-
-//     for x in 0..code_vec.len() {
-//         let variety = unique(&code_vec[x]);
-//         if variety > greatest_variety {
-//             greatest_index = x as i32;
-//             greatest_variety = variety;
-//         }
-//     }
-
-//     greatest_index
-// }
-
-// // Counts the number of unique code-numbers in a given |vec|
-// // Accepts: a vector containing i32 values: [ i32, i32, i32 ]
-// // Returns: an i32 value representing the number of unique values in the given |vec|
-// fn unique(vec: &[i32]) -> i32 {
-//     // counts the number of occurrences of a code number in an array
-//     let mut count: i32 = 0;
-//     let mut unique_nums = Vec::new(); // Create a vector (dynamic array)
-
-//     for letter in vec.iter() {
-//         if !(unique_nums.contains(letter)) {
-//             count = count + 1;
-//             unique_nums.push(*letter);
-//         };
-//     };
-
-//     count
-// }
+fn clean_hash(change: &Vec<i32>, encode_hash: &mut HashMap<i32, char>) {
+    for key in change {
+        encode_hash.remove(&key);
+    }
+}
 
 mod test;
